@@ -10,31 +10,40 @@
 
 #define PORTNUMBER 50000
 #define MAXLINE 200
-int threadID = 0;
 
-struct args {
-  char message[MAXLINE];
-  int id;
+struct argus {
+  int connection;
+  struct sockaddr_in client;
 };
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+void * executeClient(void * arg){
+  struct argus * arguments = arg;
+  printf("Conexao estabelecida com cliente %s. \n", inet_ntoa(arguments->client.sin_addr));
+  //Lendo mensagem enviada pelo cliente
+  char buffer[MAXLINE];
+  int tamr = read(arguments->connection, buffer, MAXLINE);
+  buffer[tamr] = '\0';
+  printf("Cliente %s enviou mensagem %s", inet_ntoa(arguments->client.sin_addr), buffer);
 
-void * printMessageFunction(void * argus){
-  struct args * arguments = argus;
-  printf("Executando thread %d\n%s", arguments->id, arguments->message);
+  // if(strstr(buffer, "desligar")){
+  //    //Encerra o socket servidor
+  //    close(serversocket);
+  //    //Finaliza o servidor
+  //    exit(0);
+  // }
+  //Encerra a conexao com o cliente
+  close(arguments->connection);
+
 }
 
-int createThread(char clientMessage[MAXLINE]){
-  pthread_mutex_lock(&mutex);
+int createThread(int connectionId, struct sockaddr_in clientAddress){
   pthread_t thread;
-  printf("Criando thread %d\n", threadID);
-  struct args arguments;
-  strcpy(arguments.message, clientMessage);
-  arguments.id = threadID;
-  pthread_create(&thread, NULL, printMessageFunction, (void*) &arguments);
-  threadID += 1;
-  pthread_mutex_unlock(&mutex);
+  struct argus arguments;
+  arguments.connection = connectionId;
+  memcpy(&arguments.client, &clientAddress, sizeof(struct sockaddr_in));
+  pthread_create(&thread, NULL, executeClient, (void*) &arguments);
 }
+
 
 int main(){
    int serversocket;
@@ -92,21 +101,7 @@ int main(){
       if(connectionsocket < 0){
          perror("Erro ao receber pedido de conexao: \n");
       }else{
-         printf("Conexao estabelecida com cliente %s. \n", inet_ntoa(client_addr.sin_addr));
-         //Lendo mensagem enviada pelo cliente
-         tamr = read(connectionsocket, buffer, MAXLINE);
-				 buffer[tamr] = '\0';
-         createThread(buffer);
-        //  printf("Cliente %s enviou mensagem %s", inet_ntoa(client_addr.sin_addr), buffer);
-
-         if(strstr(buffer, "desligar")){
-            //Encerra o socket servidor
-            close(serversocket);
-            //Finaliza o servidor
-            exit(0);
-         }
-         //Encerra a conexao com o cliente
-         close(connectionsocket);
+        createThread(connectionsocket, client_addr);
       }
 
    }

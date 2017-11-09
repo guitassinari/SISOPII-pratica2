@@ -42,10 +42,7 @@ int main(){
    fgets(buffer,MAXLINE,stdin);
 
    //Envia mensagem ao servidor
-   int i = 0;
-   for(i = 0; i < 5; i++){
-     tams = write(clientSock,buffer,strlen(buffer));
-   }
+   tams = write(clientSock,buffer,strlen(buffer));
    if(tams == strlen(buffer)){
       printf("Mensagem enviada. \n");
 
