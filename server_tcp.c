@@ -11,8 +11,11 @@
 #define PORTNUMBER 50000
 #define MAXLINE 200
 
+int THREAD_ID = 0;
+
 struct argus {
   int connection;
+  int * id;
   struct sockaddr_in client;
 };
 
@@ -23,7 +26,7 @@ void * executeClient(void * arg){
   char buffer[MAXLINE];
   int tamr = read(arguments->connection, buffer, MAXLINE);
   buffer[tamr] = '\0';
-  printf("Cliente %s enviou mensagem %s", inet_ntoa(arguments->client.sin_addr), buffer);
+  printf("Thread %d Cliente %s enviou mensagem %s", *arguments->id, inet_ntoa(arguments->client.sin_addr), buffer);
 
   // if(strstr(buffer, "desligar")){
   //    //Encerra o socket servidor
@@ -38,10 +41,13 @@ void * executeClient(void * arg){
 
 int createThread(int connectionId, struct sockaddr_in clientAddress){
   pthread_t thread;
-  struct argus arguments;
-  arguments.connection = connectionId;
-  memcpy(&arguments.client, &clientAddress, sizeof(struct sockaddr_in));
-  pthread_create(&thread, NULL, executeClient, (void*) &arguments);
+  struct argus * arguments = malloc(sizeof(struct argus));
+  arguments->connection = connectionId;
+  arguments->id = malloc(sizeof(int));
+  memcpy(arguments->id, &THREAD_ID, sizeof(int));
+  memcpy(&arguments->client, &clientAddress, sizeof(struct sockaddr_in));
+  pthread_create(&thread, NULL, executeClient, (void*) arguments);
+  THREAD_ID++;
 }
 
 
